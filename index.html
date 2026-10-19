@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英文法・語法 単元テスト</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        .correct-bg { background-color: #dcfce7; border-color: #22c55e; }
+        .incorrect-bg { background-color: #fee2e2; border-color: #ef4444; }
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="pb-24">
+
+    <header class="bg-blue-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-lg md:text-xl font-bold">英文法・語法 単元テスト</h1>
+            <div id="score-display" class="hidden text-xl font-bold bg-white text-blue-600 px-4 py-1 rounded-full shadow">
+                得点: <span id="total-score">0</span> / 100
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 mt-8">
+        
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8">
+            <h2 class="text-xl font-bold border-b pb-2 mb-4">テストの受け方</h2>
+            <ul class="list-disc list-inside text-gray-700 space-y-2">
+                <li>全50問、100点満点です（第1問 16問、第2問 34問 / 各2点）。</li>
+                <li>第1問の並べ替え問題は、指定された2つの空所に当てはまる語句を選んでください（順不同で正解となります）。</li>
+                <li>すべての問題に解答したら、ページ下部の「採点する」ボタンを押してください。</li>
+            </ul>
+        </div>
+
+        <div id="quiz-container">
+            <!-- Questions will be injected here by JavaScript -->
+        </div>
+
+    </main>
+
+    <div id="action-bar" class="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40">
+        <div class="max-w-4xl mx-auto flex justify-center">
+            <button id="submit-btn" class="bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold py-3 px-12 rounded-full shadow-lg transition transform hover:scale-105" onclick="gradeQuiz()">
+                採点する
+            </button>
+            <button id="retry-btn" class="hidden bg-gray-600 hover:bg-gray-700 text-white text-lg font-bold py-3 px-12 rounded-full shadow-lg transition" onclick="location.reload()">
+                もう一度やり直す
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const qSorting = [
+            { id: 1, jp: "アンは、朝食を作っていたとき、ナイフで指を切った。", en: "Ann ____ [ A ] ____ ____ ____ [ B ] ____ ____ breakfast.", ch: ["a", "making", "cut", "finger", "her", "knife", "while", "with"], ans: [5, 6], exp: "「ナイフで（with a knife）」。while making は while (she was) making の主語とbe動詞が省略された形。" },
+            { id: 2, jp: "私の祖父が建てたのはこの教会ですか。", en: "____ [ A ] ____ ____ ____ [ B ] ____ ____ ____ ____ .", ch: ["that", "it", "built", "church", "was", "grandfather", "my", "this", "is", "by"], ans: [2, 5], exp: "強調構文の疑問文 Is it ~ that ...? の形。" },
+            { id: 3, jp: "台風の中、一体どうやってそこへ着いたのですか。", en: "How ____ [ A ] ____ ____ ____ [ B ] ____ ____ typhoon?", ch: ["did", "earth", "get", "on", "in", "the", "there", "you"], ans: [2, 7], exp: "on earth で疑問詞(How)を強調し「一体どうやって」。疑問文の語順 did you get が続く。" },
+            { id: 4, jp: "その手術は、適切に行われなければ重大な危険を伴う。", en: "That operation will pose some ____ [ A ] ____ [ B ] ____ properly.", ch: ["done", "if", "not", "risks", "serious"], ans: [4, 3], exp: "if (it is) not done properly の主語とbe動詞の省略。" },
+            { id: 5, jp: "会議で誰もが彼を支持しただけでなく、彼も皆を支持した。", en: "In the meeting, ____ [ A ] ____ ____ [ B ] ____ , he also supported everyone.", ch: ["not", "everyone", "did", "support", "him", "only"], ans: [6, 4], exp: "否定語の Not only が文頭に出ているため、後ろの主文が did + S + 原形動詞 と倒置になっている。" },
+            { id: 6, jp: "アーサーの両親がノッティンガムに引っ越したのは、彼が8歳の時だった。", en: "____ ____ [ A ] ____ ____ [ B ] ____ his parents moved to Nottingham.", ch: ["was", "Arthur", "that", "when", "was", "it", "eight"], ans: [4, 7], exp: "強調構文 It was ~ that ...。副詞節の when Arthur was eight 全体が強調されている。" },
+            { id: 7, jp: "我々は、彼がその試合に負けるなどとは思ってもみなかった。", en: "____ [ A ] ____ [ B ] ____ he would lose the game.", ch: ["think", "did", "that", "little", "we"], ans: [2, 1], exp: "否定語 Little（まったく～ない）が文頭に出たことによる倒置（did + S + 原形動詞）。" },
+            { id: 8, jp: "今ほど緊張したことはこれまでになかった。", en: "At ____ [ A ] ____ ____ [ B ] ____ than I am now.", ch: ["been", "have", "I", "more nervous", "no", "time"], ans: [6, 1], exp: "否定の副詞句 At no time（一度も～ない）が文頭に出たため、完了形の倒置（have + S + p.p.）が起きている。" },
+            { id: 9, jp: "労働者は賃上げを要求するだけでなく、労働時間の削減も望んでいる。", en: "Not ____ [ A ] ____ [ B ] ____ , but they also want reduced hours.", ch: ["a pay increase", "do", "only", "the workers", "want"], ans: [2, 5], exp: "Not only が文頭に出たことによる倒置（do + S + 原形動詞）。" },
+            { id: 10, jp: "最近になってようやく、親の教えの大切さがわかった。", en: "Only ____ [ A ] ____ ____ ____ [ B ] ____ ____ ____ ____ .", ch: ["have", "I", "importance", "lessons", "my", "of", "parents'", "realized", "recently", "the"], ans: [1, 3], exp: "Only + 副詞(句・節) が文頭に出たことによる倒置（have + S + p.p.）。" },
+            { id: 11, jp: "そのオペラはイタリア語で公演され、私には一言もわからなかったし、そのストーリーも知らなかった。", en: "The opera was performed in Italian, and I did not understand a word of it, ____ [ A ] ____ [ B ] ____ .", ch: ["the story", "I", "did", "know", "nor"], ans: [3, 4], exp: "否定の同意。「～もまた･･･ない」を表す nor + 疑問文の語順（did I know）。" },
+            { id: 12, jp: "先週の日曜日はとても天気がよかったので田舎にドライブに出かけた。", en: "Last Sunday was ____ [ A ] ____ ____ [ B ] ____ took a drive in the country.", ch: ["beautiful", "day", "that", "we", "a", "so"], ans: [1, 3], exp: "so + 形容詞 + a + 名詞 + that... の語順ルール（とても美しい日だったので～）。" },
+            { id: 13, jp: "君に解いてもらいたいのはほかでもなくこの問題なんだ。", en: "It is this question ____ [ A ] ____ ____ [ B ] ____ .", ch: ["solve", "I", "to", "you", "want", "that"], ans: [2, 3], exp: "強調構文 It is ~ that...。目的語の this question が強調されて前に出ている。" },
+            { id: 14, jp: "警察が到着したのは、事故があって2時間も経ってからでした。", en: "It was ____ [ A ] ____ ____ [ B ] ____ ____ arrived.", ch: ["after", "not", "that", "the accident", "the police", "two hours", "until"], ans: [7, 4], exp: "It is not until ~ that ...（～して初めて･･･する）の強調構文パターン。" },
+            { id: 15, jp: "子どもたちが育つ世界は大人が創っている。", en: "____ [ A ] ____ ____ ____ [ B ] ____ ____ will grow up.", ch: ["adults", "children", "create", "it is", "the world", "their", "where", "who"], ans: [1, 7], exp: "強調構文 It is ~ who ...。場所を表す the world を関係副詞の where で修飾している。" },
+            { id: 16, jp: "私は、子どものころにピアノが弾けるようになれなかったことを、本当に悔やんでいます。", en: "I ____ [ A ] ____ ____ ____ [ B ] ____ ____ when I was a child.", ch: ["piano", "do", "learning", "play", "to", "the", "not", "regret"], ans: [8, 4], exp: "動詞の強調の do（本当に～する）。regret not V-ing で「～しなかったことを後悔する」。" }
+        ];
+
+        const qMcq = [
+            { id: 17, en: "Either Bill or I (   ) going to be elected chairman.", ch: ["am", "are", "is", "were"], ans: 1, exp: "Either A or B はB（I）に動詞を一致させる。" },
+            { id: 18, en: "John as well as his brothers (   ) to blame.", ch: ["are", "be", "is", "were"], ans: 3, exp: "A as well as B はA（John）に動詞を一致させる。" },
+            { id: 19, en: "The number of students in the class (   ) limited to fifteen.", ch: ["is", "are", "will", "can"], ans: 1, exp: "The number of ~（～の数）は単数扱い。" },
+            { id: 20, en: "One of the chairs in the classroom (   ) broken.", ch: ["have been", "was", "are", "were"], ans: 2, exp: "One of 複数名詞 は「～のうちの１つ」なので主語は One になり単数扱い。時制一致で過去形。" },
+            { id: 21, en: "Physics (   ) my favorite subject.", ch: ["are", "were", "is", "have been"], ans: 3, exp: "Physics などの学問名（-ics）はsで終わっていても単数扱い。" },
+            { id: 22, en: "There (   ) a lot of birds in the park.", ch: ["is", "was", "were", "has"], ans: 3, exp: "構文 There is/are ~ の後ろが複数形（a lot of birds）なので動詞は were。" },
+            { id: 23, en: "The friendly relationship experienced between the two countries (   ) deepened as a result of the treaty.", ch: ["be", "was", "are", "were"], ans: 2, exp: "過去分詞の形容詞的用法 experienced ~ countries に修飾されているが、主語の核は The friendly relationship（単数）。" },
+            { id: 24, en: "(   ) was at university that I met the woman who is now my wife.", ch: ["I", "She", "It", "What"], ans: 3, exp: "強調構文 It was ~ that ... の形。" },
+            { id: 25, en: "What on (   ) is she doing there?", ch: ["world", "earth", "ground", "space"], ans: 2, exp: "疑問詞の強調 on earth（一体全体）。" },
+            { id: 26, en: "My mother always listens to the radio (   ) driving the car.", ch: ["how", "where", "why", "while"], ans: 4, exp: "while (she is) driving the car という主語＋be動詞の省略。" },
+            { id: 27, en: "He had little, if (   ), interest in international politics.", ch: ["any", "ever", "none", "some"], ans: 1, exp: "if any = たとえあるにしても（名詞を修飾する省略表現）。" },
+            { id: 28, en: "Never in my wildest dreams (   ) imagine that I would end up like this.", ch: ["did I", "had I", "I did", "I had"], ans: 1, exp: "否定語 Never が文頭に出ているため、倒置（疑問文の語順）になる。" },
+            { id: 29, en: "\"Jane doesn't like pop music.\" \"(   )\"", ch: ["So do I.", "So I do.", "Neither do I.", "Neither I do."], ans: 3, exp: "「（否定文を受けて）私も～ない」は Neither + (助)動詞 + S。" },
+            { id: 30, en: "Either Jane or I (   ) to type up the report for our boss.", ch: ["have", "has", "must", "will"], ans: 1, exp: "Either A or B はB（I）に一致。" },
+            { id: 31, en: "Neither Nancy nor the rest of us (   ) when the big tree nearby was hit by lightning.", ch: ["has upset", "have upset", "was upset", "were upset"], ans: 4, exp: "Neither A nor B はB（the rest of us ＝複数）に一致。" },
+            { id: 32, en: "He as well as I (   ) fond of playing outdoor sports.", ch: ["is", "am", "has", "have"], ans: 1, exp: "A as well as B はA（He）に一致。" },
+            { id: 33, en: "Not only he but also I (   ) to blame.", ch: ["is", "are", "am", "have"], ans: 3, exp: "Not only A but also B はB（I）に一致。" },
+            { id: 34, en: "A number of scientists (   ) going to attend the conference next week.", ch: ["is", "be", "are", "was"], ans: 3, exp: "A number of ~（多くの～）は複数扱い。" },
+            { id: 35, en: "The number of students who wish to continue their studies (   ) increasing.", ch: ["is", "have", "has", "are"], ans: 1, exp: "The number of ~（～の数）は単数扱い。（関係代名詞節は無視してThe numberに注目）" },
+            { id: 36, en: "One of the books I read during the summer vacation (   ) Gone With the Wind.", ch: ["are", "have been", "was", "were"], ans: 3, exp: "主語は One（単数）。" },
+            { id: 37, en: "Mathematics (   ) very difficult for many students.", ch: ["are", "be", "is", "were"], ans: 3, exp: "Mathematics（数学）は学問名なので単数扱い。" },
+            { id: 38, en: "There (   ) a lot of birds in the park.", ch: ["Is", "Was", "Were", "Will"], ans: 3, exp: "構文 There is/are ~。主語が a lot of birds（複数）なので Were。" },
+            { id: 39, en: "His knowledge of languages and different cultures (   ) him a lot in his business.", ch: ["are helping", "are being helped", "helps", "help"], ans: 3, exp: "主語は His knowledge（単数形、不可算名詞）なので三単現のsがつく。" },
+            { id: 40, en: "The places I want to visit someday (   ) the Taj Mahal and the Grand Canyon.", ch: ["are", "be", "is", "will"], ans: 1, exp: "主語は The places（複数形）。" },
+            { id: 41, en: "It was (   ) the 1956 Olympic Games were held.", ch: ["in Melbourne that", "Melbourne in where", "that in Melbourne", "in Melbourne which"], ans: 1, exp: "強調構文 It was ~ that...。副詞句の in Melbourne を強調。" },
+            { id: 42, en: "Why on (   ) did the railway accident happen?", ch: ["earth", "globe", "the universe", "the world"], ans: 1, exp: "疑問詞の強調 on earth。" },
+            { id: 43, en: "Tsutomu likes listening to music (   ) driving.", ch: ["with", "between", "by", "while"], ans: 4, exp: "while (he is) driving という主語＋be動詞の省略。" },
+            { id: 44, en: "Mr. and Mrs. Thatcher seldom, if (   ), go out in the evening.", ch: ["any", "few", "little", "ever"], ans: 4, exp: "seldom, if ever = 滅多にないが、たとえあるにしても（動詞を修飾）。" },
+            { id: 45, en: "Would you read my letter and correct the mistakes, if (   )?", ch: ["all", "many", "ever", "any"], ans: 4, exp: "if any = もし（間違いが）あれば。" },
+            { id: 46, en: "Not until 1945 (   ) to attend four-year colleges.", ch: ["did women allowed", "no women allowed", "were women allowed", "women were not allowed"], ans: 3, exp: "否定の副詞句 Not until 1945 が文頭に出ているため倒置（疑問文の語順）。" },
+            { id: 47, en: "The spelling of English words is not fixed, nor (   ) on any other authority.", ch: ["depends it", "does it depend", "it depends", "it does depend"], ans: 2, exp: "否定の同意「～もまた･･･ない」で、nor + 疑問文の語順。" },
+            { id: 48, en: "\"I haven't been here before.\" \"Is that so? (   ).\"", ch: ["I haven't neither", "Nor I haven't", "I neither did", "Neither have I"], ans: 4, exp: "「私も～ない」。現在完了の否定文を受けているので Neither have S となる。" },
+            { id: 49, en: "\"I'm taking my vacation next month.\" \"Really? (   )\"", ch: ["So I am.", "So am I.", "So I do.", "So do I."], ans: 2, exp: "「（肯定文を受けて）私も～だ」は So + (助)動詞 + S。be動詞の文を受けているのでam。" },
+            { id: 50, en: "\"I didn't make any mistakes in the math quiz!\" \"(   ) did I.\"", ch: ["I", "Yet", "Also", "Nor"], ans: 4, exp: "「私も～ない」は Neitherの他に Nor + (助)動詞 + S も可。" }
+        ];
+
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            let html = `
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-blue-700 mb-4 border-b-2 border-blue-200 pb-2">第1問：並べ替え（1問2点 / 順不同）</h2>
+                    <p class="mb-4 text-gray-600">各文が正しい英文になるように、並べ替えた際に [ A ] と [ B ] の空所に入る語句をそれぞれ選んでください。</p>
+            `;
+
+            qSorting.forEach((q, index) => {
+                let optionsHtml = '<option value="">選択してください...</option>';
+                q.ch.forEach((choice, i) => {
+                    optionsHtml += `<option value="${i + 1}">①〜⑧: ${choice}</option>`;
+                });
+
+                html += `
+                    <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 mb-4" id="q-card-${q.id}">
+                        <div class="font-bold text-lg mb-2"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2">問${q.id}</span>${q.jp}</div>
+                        <div class="text-lg font-medium text-gray-800 mb-4 tracking-wide">${q.en}</div>
+                        
+                        <div class="bg-gray-50 p-3 rounded border mb-4 text-sm text-gray-600 flex flex-wrap gap-x-4 gap-y-2">
+                            ${q.ch.map((c, i) => `<span>(${i+1}) ${c}</span>`).join('')}
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                            <label class="flex items-center gap-2">
+                                <span class="font-bold text-gray-700">[ A ]</span>
+                                <select id="q${q.id}-A" class="form-select w-full sm:w-48 border-gray-300 rounded-md shadow-sm p-2 border focus:border-blue-500 focus:ring focus:ring-blue-200">
+                                    ${optionsHtml}
+                                </select>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <span class="font-bold text-gray-700">[ B ]</span>
+                                <select id="q${q.id}-B" class="form-select w-full sm:w-48 border-gray-300 rounded-md shadow-sm p-2 border focus:border-blue-500 focus:ring focus:ring-blue-200">
+                                    ${optionsHtml}
+                                </select>
+                            </label>
+                        </div>
+                        
+                        <div id="exp-${q.id}" class="hidden mt-4 p-4 rounded-md fade-in text-gray-800 border">
+                            <p class="font-bold mb-1 status-text"></p>
+                            <p class="text-sm"><strong>解説:</strong> ${q.exp}</p>
+                            <p class="text-sm mt-1"><strong>正解の組み合わせ:</strong> [ ${q.ans.join(', ')} ] (順不同)</p>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+
+            // MCQs
+            html += `
+                <div class="mb-8">
+                    <h2 class="text-2xl font-bold text-blue-700 mb-4 border-b-2 border-blue-200 pb-2">第2問：4択問題（1問2点）</h2>
+                    <p class="mb-4 text-gray-600">空所に入る最も適切なものを1つ選んでください。</p>
+            `;
+
+            qMcq.forEach((q, index) => {
+                let choicesHtml = '';
+                q.ch.forEach((choice, i) => {
+                    choicesHtml += `
+                        <label class="flex items-center p-3 border rounded-lg hover:bg-blue-50 cursor-pointer transition">
+                            <input type="radio" name="q${q.id}" value="${i + 1}" class="form-radio h-5 w-5 text-blue-600">
+                            <span class="ml-3 text-gray-800">${i + 1}. ${choice}</span>
+                        </label>
+                    `;
+                });
+
+                html += `
+                    <div class="bg-white p-5 rounded-lg shadow-sm border border-gray-200 mb-4" id="q-card-${q.id}">
+                        <div class="font-bold text-lg mb-4"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2">問${q.id}</span>${q.en}</div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            ${choicesHtml}
+                        </div>
+                        <div id="exp-${q.id}" class="hidden mt-4 p-4 rounded-md fade-in text-gray-800 border">
+                            <p class="font-bold mb-1 status-text"></p>
+                            <p class="text-sm"><strong>解説:</strong> ${q.exp}</p>
+                            <p class="text-sm mt-1"><strong>正解:</strong> ${q.ans}. ${q.ch[q.ans-1]}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            html += `</div>`;
+
+            container.innerHTML = html;
+        }
+
+        function gradeQuiz() {
+            let totalScore = 0;
+
+            // Grade Sorting
+            qSorting.forEach(q => {
+                const valA = parseInt(document.getElementById(`q${q.id}-A`).value);
+                const valB = parseInt(document.getElementById(`q${q.id}-B`).value);
+                const card = document.getElementById(`q-card-${q.id}`);
+                const expBox = document.getElementById(`exp-${q.id}`);
+                const statusTxt = expBox.querySelector('.status-text');
+
+                // 順不同判定
+                const isCorrect = 
+                    (valA === q.ans[0] && valB === q.ans[1]) || 
+                    (valA === q.ans[1] && valB === q.ans[0]);
+
+                expBox.classList.remove('hidden', 'correct-bg', 'incorrect-bg');
+                
+                if (isCorrect) {
+                    totalScore += 2;
+                    card.classList.add('border-green-400', 'bg-green-50');
+                    expBox.classList.add('correct-bg');
+                    statusTxt.textContent = '⭕ 正解 (2点)';
+                    statusTxt.classList.add('text-green-700');
+                } else {
+                    card.classList.add('border-red-400', 'bg-red-50');
+                    expBox.classList.add('incorrect-bg');
+                    statusTxt.textContent = '❌ 不正解 (0点)';
+                    statusTxt.classList.add('text-red-700');
+                }
+            });
+
+            // Grade MCQs
+            qMcq.forEach(q => {
+                const selected = document.querySelector(`input[name="q${q.id}"]:checked`);
+                const val = selected ? parseInt(selected.value) : null;
+                const card = document.getElementById(`q-card-${q.id}`);
+                const expBox = document.getElementById(`exp-${q.id}`);
+                const statusTxt = expBox.querySelector('.status-text');
+
+                expBox.classList.remove('hidden', 'correct-bg', 'incorrect-bg');
+
+                if (val === q.ans) {
+                    totalScore += 2;
+                    card.classList.add('border-green-400', 'bg-green-50');
+                    expBox.classList.add('correct-bg');
+                    statusTxt.textContent = '⭕ 正解 (2点)';
+                    statusTxt.classList.add('text-green-700');
+                } else {
+                    card.classList.add('border-red-400', 'bg-red-50');
+                    expBox.classList.add('incorrect-bg');
+                    statusTxt.textContent = '❌ 不正解 (0点)';
+                    statusTxt.classList.add('text-red-700');
+                }
+            });
+
+            // Update UI
+            document.getElementById('total-score').textContent = totalScore;
+            document.getElementById('score-display').classList.remove('hidden');
+            document.getElementById('submit-btn').classList.add('hidden');
+            document.getElementById('retry-btn').classList.remove('hidden');
+
+            // Scroll to top to see score
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Initialize App
+        window.onload = renderQuiz;
+    </script>
+</body>
+</html>
